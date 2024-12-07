@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <map> // Include map for symbol tracking
 
 // Custom TLS configuration for WebSocket++ client
 struct custom_tls_config : public websocketpp::config::core_client {
@@ -54,6 +55,9 @@ private:
     std::string token;
     int channelNumber;
     std::vector<std::string> symbolsToTrack;
+
+    // Add a map to track symbol statuses
+    std::map<std::string, bool> symbolsStatus;
 
     WebSocketClient client;
 

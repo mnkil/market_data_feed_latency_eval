@@ -211,8 +211,8 @@ def main():
     start_time = time.time() 
     
     # Define the symbols to retrieve prices for
-    # symbols = ["/6EZ24:XCME", "/6BZ24:XCME"]
-    symbols = ["/6BZ24:XCME"]
+    symbols = ["/6EZ24:XCME", "/6BZ24:XCME"]
+    # symbols = ["/6BZ24:XCME"]
 
     # Create a MarketDataProcessor instance
     pxi = px_flow(symbols)
