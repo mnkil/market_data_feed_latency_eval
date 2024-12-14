@@ -26,8 +26,8 @@ int main() {
 
         // Define the symbols to retrieve prices for
         // std::vector<std::string> symbols = {"/6BZ24:XCME", "/6EZ24:XCME"};
-        std::vector<std::string> symbols = {"/6EZ24:XCME"};
-        // std::vector<std::string> symbols = {"/6BZ24:XCME"};
+        // std::vector<std::string> symbols = {"/6EZ24:XCME"};
+        std::vector<std::string> symbols = {"/6BZ24:XCME"};
 
         // Initialize and connect to WebSocket
         MarketDataWebSocket wsClient(

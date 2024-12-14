@@ -5,11 +5,14 @@
 #include <websocketpp/transport/asio/endpoint.hpp>
 #include <websocketpp/transport/asio/security/tls.hpp>
 #include <websocketpp/client.hpp>
-#include <boost/asio/ssl/context.hpp>
+#include <boost/asio/ssl.hpp>
 #include <memory>
 #include <string>
 #include <vector>
-#include <map> // Include map for symbol tracking
+#include <map> // For symbol tracking
+#include <iostream> // For debug output
+#include <fstream> // For file existence check
+#include <openssl/ssl.h> // For OpenSSL configuration
 
 // Custom TLS configuration for WebSocket++ client
 struct custom_tls_config : public websocketpp::config::core_client {
@@ -39,9 +42,33 @@ struct custom_tls_config : public websocketpp::config::core_client {
 
     // TLS context initialization
     static std::shared_ptr<boost::asio::ssl::context> on_tls_init(websocketpp::connection_hdl) {
+        const char* cert_file = "/etc/ssl/certs/ca-bundle.crt";
+
+        // Debug: Check if the CA file exists
+        std::ifstream file(cert_file);
+        if (file) {
+            std::cout << "[DEBUG] CA file found: " << cert_file << std::endl;
+        } else {
+            std::cerr << "[ERROR] CA file not found: " << cert_file << std::endl;
+        }
+
+        // Create and configure the SSL context
         auto ctx = std::make_shared<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv12);
-        ctx->set_default_verify_paths(); // Use system's default CA certificates
-        ctx->set_verify_mode(boost::asio::ssl::verify_peer); // Verify peers
+        try {
+            ctx->set_verify_mode(boost::asio::ssl::verify_peer); // Verify peers
+
+            // Directly set the CA file path for OpenSSL
+            if (SSL_CTX_load_verify_locations(ctx->native_handle(), cert_file, nullptr) != 1) {
+                std::cerr << "[ERROR] Failed to load CA file: " << cert_file << std::endl;
+                throw std::runtime_error("Failed to load CA file");
+            }
+
+            std::cout << "[DEBUG] Successfully loaded CA file: " << cert_file << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "[ERROR] SSL context configuration failed: " << e.what() << std::endl;
+            throw;
+        }
+
         return ctx;
     }
 };

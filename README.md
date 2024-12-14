@@ -1,6 +1,7 @@
-# TT/dxFeed Price Stream Latency Tests
+# TT/dxFeed Price Feed Latency Testing
 
-measure roundtrip latency Local/AWS-Chicago/TT/dxFeed Python vs C++
+measuring roundtrip px latency - Local/AWS-Chicago/TT/dxFeed Python vs C++:
+![Project Image](barplot.png)
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](URL-to-build)
 

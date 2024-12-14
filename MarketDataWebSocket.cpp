@@ -1,6 +1,7 @@
 #include "MarketDataWebSocket.hpp"
 #include <iostream>
 #include <boost/json.hpp>
+#include <chrono>
 
 MarketDataWebSocket::MarketDataWebSocket(const std::string& url, const std::string& authToken, int channel)
     : wsUrl(url), token(authToken), channelNumber(channel) {}
@@ -51,7 +52,7 @@ void MarketDataWebSocket::connect() {
 }
 
 void MarketDataWebSocket::onOpen(websocketpp::connection_hdl hdl) {
-    std::cout << "### Connection opened ###" << std::endl;
+    // std::cout << "### Connection opened ###" << std::endl;
 
     // Send SETUP message
     boost::json::object setupMessage{
@@ -62,14 +63,15 @@ void MarketDataWebSocket::onOpen(websocketpp::connection_hdl hdl) {
         {"acceptKeepaliveTimeout", 20}
     };
 
-    std::cout << "Sending SETUP message: " << boost::json::serialize(setupMessage) << std::endl;
+    // std::cout << "Sending SETUP message: " << boost::json::serialize(setupMessage) << std::endl;
     client.send(hdl, boost::json::serialize(setupMessage), websocketpp::frame::opcode::text);
 }
 
 void MarketDataWebSocket::onMessage(websocketpp::connection_hdl hdl, const std::string& message) {
     try {
+        auto ws_start_time = std::chrono::high_resolution_clock::now();
         auto data = boost::json::parse(message).as_object();
-
+        
         // Handle AUTH_STATE
         if (data["type"].as_string() == "AUTH_STATE") {
             if (data["state"].as_string() == "UNAUTHORIZED") {
@@ -78,7 +80,7 @@ void MarketDataWebSocket::onMessage(websocketpp::connection_hdl hdl, const std::
                     {"channel", 0},
                     {"token", token}
                 };
-                std::cout << "Sending AUTH message: " << boost::json::serialize(authMessage) << std::endl;
+                // std::cout << "Sending AUTH message: " << boost::json::serialize(authMessage) << std::endl;
                 client.send(hdl, boost::json::serialize(authMessage), websocketpp::frame::opcode::text);
             } else if (data["state"].as_string() == "AUTHORIZED") {
                 boost::json::object channelRequestMessage{
@@ -87,7 +89,7 @@ void MarketDataWebSocket::onMessage(websocketpp::connection_hdl hdl, const std::
                     {"service", "FEED"},
                     {"parameters", boost::json::object{{"contract", "AUTO"}}}
                 };
-                std::cout << "Sending CHANNEL_REQUEST message: " << boost::json::serialize(channelRequestMessage) << std::endl;
+                // std::cout << "Sending CHANNEL_REQUEST message: " << boost::json::serialize(channelRequestMessage) << std::endl;
                 client.send(hdl, boost::json::serialize(channelRequestMessage), websocketpp::frame::opcode::text);
             }
         }
@@ -103,7 +105,7 @@ void MarketDataWebSocket::onMessage(websocketpp::connection_hdl hdl, const std::
                     {"Quote", {"eventType", "eventSymbol", "bidPrice", "askPrice", "bidSize", "askSize"}}
                 }}
             };
-            std::cout << "Sending FEED_SETUP message: " << boost::json::serialize(feedSetupMessage) << std::endl;
+            // std::cout << "Sending FEED_SETUP message: " << boost::json::serialize(feedSetupMessage) << std::endl;
             client.send(hdl, boost::json::serialize(feedSetupMessage), websocketpp::frame::opcode::text);
         }
 
@@ -121,15 +123,15 @@ void MarketDataWebSocket::onMessage(websocketpp::connection_hdl hdl, const std::
                 {"add", symbolsArray}
             };
 
-            std::cout << "Sending FEED_SUBSCRIPTION message: "
-                      << boost::json::serialize(subscriptionMessage) << std::endl;
+            // std::cout << "Sending FEED_SUBSCRIPTION message: "
+                    //   << boost::json::serialize(subscriptionMessage) << std::endl;
 
             client.send(hdl, boost::json::serialize(subscriptionMessage), websocketpp::frame::opcode::text);
         }
 
         // Handle FEED_DATA
         if (data["type"].as_string() == "FEED_DATA" && data["channel"].as_int64() == channelNumber) {
-            std::cout << "FEED_DATA message received. Processing market data." << std::endl;
+            // std::cout << "FEED_DATA message received. Processing market data." << std::endl;
 
             auto feedData = data["data"].as_array();
             std::string feedType = std::string(feedData[0].as_string().c_str()); // Fix conversion here
@@ -159,6 +161,9 @@ void MarketDataWebSocket::onMessage(websocketpp::connection_hdl hdl, const std::
             // Check if all symbols have received data
             if (std::all_of(symbolsStatus.begin(), symbolsStatus.end(),
                             [](const auto& entry) { return entry.second; })) {
+                auto ws_end_time = std::chrono::high_resolution_clock::now();
+                auto ws_duration = std::chrono::duration_cast<std::chrono::microseconds>(ws_end_time - ws_start_time).count();
+                std::cout << "WebSocket routine return time: " << ws_duration << " mus" << std::endl;                                
                 std::cout << "All symbols have received data. Closing WebSocket connection." << std::endl;
                 client.stop();
             }
